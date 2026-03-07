@@ -1,0 +1,103 @@
+rules:
+- id: fixora-wrapper-get-user
+  pattern: "def get_user(...):\n  ..."
+  message: 'Vulnerable function ''get_user()'' wraps db.session.execute. Vulnerability:
+    SQL Injection. User input is directly concatenated into a SQL query without sanitization.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: SQL Injection
+    confidence: HIGH
+    wrapper_defined_in: models/user_model.py
+    wraps:
+    - db.session.execute
+    modules_used:
+    - sqlalchemy
+    cwe:
+    - CWE-89
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-update-email
+  pattern: "def update_email(...):\n  ..."
+  message: 'Vulnerable function ''update_email()'' wraps re.search. Vulnerability:
+    Regex Denial of Service. A complex regex pattern can lead to a denial of service
+    if the input is crafted to cause excessive backtracking.'
+  severity: WARNING
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Regex Denial of Service
+    confidence: MEDIUM
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - re.search
+    modules_used:
+    - re
+- id: fixora-wrapper-register-user
+  pattern: "def register_user(...):\n  ..."
+  message: 'Vulnerable function ''register_user()'' wraps User. Vulnerability: Privilege
+    Escalation. An attacker can register as an admin by manipulating the request data.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Privilege Escalation
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User
+    modules_used:
+    - models
+- id: fixora-wrapper-login-user
+  pattern: "def login_user(...):\n  ..."
+  message: 'Vulnerable function ''login_user()'' wraps User.query.filter_by. Vulnerability:
+    Password Enumeration. The application reveals whether a username exists or not,
+    potentially allowing an attacker to enumerate valid usernames.'
+  severity: WARNING
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Password Enumeration
+    confidence: MEDIUM
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User.query.filter_by
+    modules_used:
+    - models
+- id: fixora-wrapper-update-password
+  pattern: "def update_password(...):\n  ..."
+  message: 'Vulnerable function ''update_password()'' wraps User.query.filter_by.
+    Vulnerability: Unauthorized Password Update. An attacker can update the password
+    of another user without authorization.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Unauthorized Password Update
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User.query.filter_by
+    modules_used:
+    - models
