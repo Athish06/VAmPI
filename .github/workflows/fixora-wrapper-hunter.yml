@@ -1,13 +1,11 @@
 name: Fixora Wrapper Hunter
 
 on:
-  repository_dispatch:
-    types: [fixora-wrapper-hunt]
   workflow_dispatch:
     inputs:
       scan_mode:
         description: 'Scan mode: full or diff'
-        required: false
+        required: true
         default: 'full'
         type: choice
         options:
@@ -15,11 +13,10 @@ on:
           - diff
       scan_id:
         description: 'Fixora scan ID for tracking'
-        required: false
-        default: ''
+        required: true
       target_branch:
         description: 'Branch to analyze'
-        required: false
+        required: true
         default: 'main'
       base_commit:
         description: 'Base commit for diff scan (optional)'
@@ -33,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
+          ref: ${{ github.event.inputs.target_branch }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -360,11 +357,11 @@ jobs:
 
       - name: Run Wrapper Hunter
         run: |
-                    SCAN_MODE="${{ github.event.client_payload.scan_mode || github.event.inputs.scan_mode || 'full' }}"
-                    BASE_COMMIT="${{ github.event.client_payload.base_commit || github.event.inputs.base_commit || '' }}"
-                    if [ "$SCAN_MODE" != "diff" ]; then
-                        BASE_COMMIT=""
-                    fi
+          SCAN_MODE="${{ github.event.inputs.scan_mode || 'full' }}"
+          BASE_COMMIT="${{ github.event.inputs.base_commit || '' }}"
+          if [ "$SCAN_MODE" != "diff" ]; then
+            BASE_COMMIT=""
+          fi
 
           cat > /tmp/wrapper_hunter.py << 'HUNTER_SCRIPT'
           #!/usr/bin/env python3
@@ -723,7 +720,7 @@ jobs:
                   return ".".join(reversed(parts))
               return None
 
-          # Known dangerous method names � indicate security-relevant operations
+          # Known dangerous method names indicate security-relevant operations
           # even when called on LOCAL objects (e.g. cursor.execute, proc.communicate).
           # These catch cases where the AST can't trace variable origin back to a module.
           DANGEROUS_SINK_METHODS = {
@@ -1100,7 +1097,7 @@ jobs:
 
       - name: Send Wrapper Hunter Results to Fixora
         run: |
-          SCAN_ID="${{ github.event.client_payload.scan_id || github.event.inputs.scan_id }}"
+          SCAN_ID="${{ github.event.inputs.scan_id }}"
           
           if [ -f wrapper-hunter-results.json ]; then
             echo "Sending wrapper hunter results to Fixora backend..."
@@ -1132,19 +1129,19 @@ jobs:
               echo "HTTP status: $HTTP_STATUS"
               cat /tmp/wh-response.txt || true
               if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-                echo "? Wrapper hunter results sent successfully (HTTP $HTTP_STATUS)"
+                echo "Wrapper hunter results sent successfully (HTTP $HTTP_STATUS)"
                 exit 0
               else
                 RETRY_COUNT=$((RETRY_COUNT + 1))
-                echo "??  Attempt $RETRY_COUNT failed (HTTP $HTTP_STATUS). Retrying in 10s..."
+                echo "Attempt $RETRY_COUNT failed (HTTP $HTTP_STATUS). Retrying in 10s..."
                 sleep 10
               fi
             done
             
-            echo "? Failed to send wrapper hunter results after $MAX_RETRIES attempts"
+            echo "Failed to send wrapper hunter results after $MAX_RETRIES attempts"
             exit 1
           else
-            echo "??  No wrapper hunter results file found"
+            echo "No wrapper hunter results file found"
           fi
 
       - name: Upload Wrapper Hunter Artifacts
