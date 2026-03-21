@@ -1,6 +1,8 @@
 name: Fixora Wrapper Hunter
 
 on:
+  repository_dispatch:
+    types: [fixora-wrapper-hunt]
   workflow_dispatch:
     inputs:
       scan_mode:
@@ -30,7 +32,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.target_branch }}
+          ref: ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -357,8 +359,8 @@ jobs:
 
       - name: Run Wrapper Hunter
         run: |
-          SCAN_MODE="${{ github.event.inputs.scan_mode || 'full' }}"
-          BASE_COMMIT="${{ github.event.inputs.base_commit || '' }}"
+          SCAN_MODE="${{ github.event.client_payload.scan_mode || github.event.inputs.scan_mode || 'full' }}"
+          BASE_COMMIT="${{ github.event.client_payload.base_commit || github.event.inputs.base_commit || '' }}"
           if [ "$SCAN_MODE" != "diff" ]; then
             BASE_COMMIT=""
           fi
@@ -1097,7 +1099,7 @@ jobs:
 
       - name: Send Wrapper Hunter Results to Fixora
         run: |
-          SCAN_ID="${{ github.event.inputs.scan_id }}"
+          SCAN_ID="${{ github.event.client_payload.scan_id || github.event.inputs.scan_id }}"
           
           if [ -f wrapper-hunter-results.json ]; then
             echo "Sending wrapper hunter results to Fixora backend..."
