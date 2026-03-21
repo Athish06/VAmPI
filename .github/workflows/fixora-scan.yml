@@ -1,30 +1,27 @@
 name: Fixora Security Scan
 
 on:
-  repository_dispatch:
-    types: [fixora-scan]
   workflow_dispatch:
     inputs:
-            scan_mode:
-                description: 'Scan mode: full or diff'
-                required: false
-                default: 'full'
-                type: choice
-                options:
-                    - full
-                    - diff
-            target_branch:
-                description: 'Branch to scan'
-                required: false
-                default: 'main'
-            base_commit:
-                description: 'Base commit for diff scan (optional)'
-                required: false
-                default: ''
-            scan_id:
-                description: 'Fixora scan ID for tracking'
-                required: false
-                default: ''
+      scan_mode:
+        description: 'Scan mode: full or diff'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - diff
+      target_branch:
+        description: 'Branch to scan'
+        required: true
+        default: 'main'
+      base_commit:
+        description: 'Base commit for diff scan (optional)'
+        required: false
+        default: ''
+      scan_id:
+        description: 'Fixora scan ID for tracking'
+        required: true
 
 jobs:
   security-scan:
@@ -33,7 +30,7 @@ jobs:
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
+          ref: ${{ github.event.inputs.target_branch }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -45,7 +42,7 @@ jobs:
         run: pip install semgrep
 
       - name: Run Semgrep Scan (Full)
-        if: ${{ (github.event.client_payload.scan_mode || github.event.inputs.scan_mode) == 'full' }}
+        if: ${{ github.event.inputs.scan_mode == 'full' }}
         run: |
           EXTRA_CONFIG=""
           if [ -f .fixora-rules.yml ]; then
@@ -56,14 +53,14 @@ jobs:
           semgrep scan --config auto $EXTRA_CONFIG $FIXORA_EXCLUDE --json --output semgrep-results.json . || true
 
       - name: Run Semgrep Scan (Diff)
-        if: ${{ (github.event.client_payload.scan_mode || github.event.inputs.scan_mode) == 'diff' && (github.event.client_payload.base_commit || github.event.inputs.base_commit) != '' }}
+        if: ${{ github.event.inputs.scan_mode == 'diff' && github.event.inputs.base_commit != '' }}
         run: |
           EXTRA_CONFIG=""
           if [ -f .fixora-rules.yml ]; then
             echo "Found Fixora custom rules from AI analysis, including in scan..."
             EXTRA_CONFIG="--config .fixora-rules.yml"
           fi
-          BASE_COMMIT="${{ github.event.client_payload.base_commit || github.event.inputs.base_commit }}"
+          BASE_COMMIT="${{ github.event.inputs.base_commit }}"
           git diff --name-only $BASE_COMMIT HEAD > all_changed_files.txt
           # Exclude Fixora's own workflow files so Semgrep doesn't flag them
           grep -v -E 'fixora-scan\.yml|fixora-wrapper-hunter\.yml' all_changed_files.txt > changed_files.txt || true
@@ -76,9 +73,9 @@ jobs:
 
       - name: Send Results to Fixora
         run: |
-          SCAN_ID="${{ github.event.client_payload.scan_id || github.event.inputs.scan_id }}"
-          TARGET_BRANCH="${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}"
-          SCAN_MODE="${{ github.event.client_payload.scan_mode || github.event.inputs.scan_mode }}"
+          SCAN_ID="${{ github.event.inputs.scan_id }}"
+          TARGET_BRANCH="${{ github.event.inputs.target_branch }}"
+          SCAN_MODE="${{ github.event.inputs.scan_mode }}"
           
           if [ -f semgrep-results.json ]; then
             echo "Sending results to Fixora backend: ${{ secrets.FIXORA_API_URL }}"
@@ -103,22 +100,22 @@ jobs:
             while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
               echo "Attempting to send results (attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)..."
               if curl -X POST "${{ secrets.FIXORA_API_URL }}/api/scan/webhook/results"                 -H "Content-Type: application/json"                 -H "X-Fixora-Token: ${{ secrets.FIXORA_API_TOKEN }}"                 -d @payload.json                 --max-time 30                 --retry 2                 --retry-delay 5; then
-                echo "? Results sent successfully"
+                                echo "Results sent successfully"
                 exit 0
               else
                 RETRY_COUNT=$((RETRY_COUNT + 1))
-                echo "??  Attempt $RETRY_COUNT failed. Retrying..."
+                                echo "Attempt $RETRY_COUNT failed. Retrying..."
                 sleep 5
               fi
             done
             
-            echo "? Failed to send results after $MAX_RETRIES attempts"
+                        echo "Failed to send results after $MAX_RETRIES attempts"
             echo "This usually means your Fixora backend is not publicly accessible."
             echo "For local development, use ngrok or similar to expose your backend."
             echo "Backend URL configured: ${{ secrets.FIXORA_API_URL }}"
             exit 1
           else
-            echo "??  No results file found"
+                        echo "No results file found"
           fi
 
       - name: Upload Scan Artifacts
