@@ -1,6 +1,8 @@
 name: Fixora Security Scan
 
 on:
+  repository_dispatch:
+    types: [fixora-scan]
   workflow_dispatch:
     inputs:
       scan_mode:
@@ -30,7 +32,7 @@ jobs:
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.target_branch }}
+          ref: ${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}
           fetch-depth: 0
 
       - name: Setup Python
@@ -42,7 +44,7 @@ jobs:
         run: pip install semgrep
 
       - name: Run Semgrep Scan (Full)
-        if: ${{ github.event.inputs.scan_mode == 'full' }}
+        if: ${{ (github.event.client_payload.scan_mode || github.event.inputs.scan_mode) == 'full' }}
         run: |
           EXTRA_CONFIG=""
           if [ -f .fixora-rules.yml ]; then
@@ -53,14 +55,14 @@ jobs:
           semgrep scan --config auto $EXTRA_CONFIG $FIXORA_EXCLUDE --json --output semgrep-results.json . || true
 
       - name: Run Semgrep Scan (Diff)
-        if: ${{ github.event.inputs.scan_mode == 'diff' && github.event.inputs.base_commit != '' }}
+        if: ${{ (github.event.client_payload.scan_mode || github.event.inputs.scan_mode) == 'diff' && (github.event.client_payload.base_commit || github.event.inputs.base_commit) != '' }}
         run: |
           EXTRA_CONFIG=""
           if [ -f .fixora-rules.yml ]; then
             echo "Found Fixora custom rules from AI analysis, including in scan..."
             EXTRA_CONFIG="--config .fixora-rules.yml"
           fi
-          BASE_COMMIT="${{ github.event.inputs.base_commit }}"
+          BASE_COMMIT="${{ github.event.client_payload.base_commit || github.event.inputs.base_commit }}"
           git diff --name-only $BASE_COMMIT HEAD > all_changed_files.txt
           # Exclude Fixora's own workflow files so Semgrep doesn't flag them
           grep -v -E 'fixora-scan\.yml|fixora-wrapper-hunter\.yml' all_changed_files.txt > changed_files.txt || true
@@ -73,9 +75,9 @@ jobs:
 
       - name: Send Results to Fixora
         run: |
-          SCAN_ID="${{ github.event.inputs.scan_id }}"
-          TARGET_BRANCH="${{ github.event.inputs.target_branch }}"
-          SCAN_MODE="${{ github.event.inputs.scan_mode }}"
+          SCAN_ID="${{ github.event.client_payload.scan_id || github.event.inputs.scan_id }}"
+          TARGET_BRANCH="${{ github.event.client_payload.target_branch || github.event.inputs.target_branch }}"
+          SCAN_MODE="${{ github.event.client_payload.scan_mode || github.event.inputs.scan_mode }}"
           
           if [ -f semgrep-results.json ]; then
             echo "Sending results to Fixora backend: ${{ secrets.FIXORA_API_URL }}"
