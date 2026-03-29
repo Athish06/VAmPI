@@ -1,0 +1,211 @@
+rules:
+- id: fixora-wrapper-get-user
+  patterns:
+  - pattern-inside: "def get_user(...):\n  ..."
+  - pattern-either:
+    - pattern: db.session.execute(...)
+    - pattern: $OBJ.execute(...)
+    - pattern: execute(...)
+  message: '### SQL Injection via `username`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `db.session.execute`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: get_user()\n// Parameter: username\n\n// Attacker
+    executes:\nget_user(username = Robert''); DROP TABLE users; --)\n```
+
+
+    **Outcome:**
+
+    The attacker-controlled username is concatenated into the SQL query, allowing
+    an attacker to inject malicious SQL code.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can execute arbitrary SQL queries, potentially leading to data tampering
+    or exfiltration.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: SQL Injection
+    confidence: HIGH
+    wrapper_defined_in: models/user_model.py
+    wraps:
+    - db.session.execute
+    modules_used:
+    - sqlalchemy
+    vulnerable_parameter: username
+    malicious_payload: Robert'); DROP TABLE users; --
+    exploit_explanation: The attacker-controlled username is concatenated into the
+      SQL query, allowing an attacker to inject malicious SQL code.
+    exploit_injected_example: get_user(username = Robert'); DROP TABLE users; --)
+    impact_summary: Attackers can execute arbitrary SQL queries, potentially leading
+      to data tampering or exfiltration.
+    cwe:
+    - CWE-89
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-get-by-title
+  patterns:
+  - pattern-inside: "def get_by_title(...):\n  ..."
+  - pattern-either:
+    - pattern: Book.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: '### IDOR / Broken Access Control via `book_title`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `Book.query.filter_by`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: get_by_title()\n// Parameter: book_title\n\n//
+    Attacker executes:\nget_by_title(book_title = any_book_title)\n```
+
+
+    **Outcome:**
+
+    The attacker can access any book by providing its title, bypassing authorization
+    checks.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can access sensitive information about books, potentially leading to
+    data exfiltration.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: IDOR / Broken Access Control
+    confidence: HIGH
+    wrapper_defined_in: api_views/books.py
+    wraps:
+    - Book.query.filter_by
+    modules_used:
+    - models
+    - flask
+    vulnerable_parameter: book_title
+    malicious_payload: any_book_title
+    exploit_explanation: The attacker can access any book by providing its title,
+      bypassing authorization checks.
+    exploit_injected_example: get_by_title(book_title = any_book_title)
+    impact_summary: Attackers can access sensitive information about books, potentially
+      leading to data exfiltration.
+- id: fixora-wrapper-update-password
+  patterns:
+  - pattern-inside: "def update_password(...):\n  ..."
+  - pattern-either:
+    - pattern: User.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: '### IDOR / Broken Access Control via `username`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `User.query.filter_by`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: update_password()\n// Parameter: username\n\n//
+    Attacker executes:\nupdate_password(username = another_user)\n```
+
+
+    **Outcome:**
+
+    The attacker can update the password of any user by providing their username.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can take control of other users'' accounts, potentially leading to data
+    tampering or unauthorized access.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: IDOR / Broken Access Control
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User.query.filter_by
+    modules_used:
+    - models
+    - flask
+    vulnerable_parameter: username
+    malicious_payload: another_user
+    exploit_explanation: The attacker can update the password of any user by providing
+      their username.
+    exploit_injected_example: update_password(username = another_user)
+    impact_summary: Attackers can take control of other users' accounts, potentially
+      leading to data tampering or unauthorized access.
+- id: fixora-wrapper-register-user
+  patterns:
+  - pattern-inside: "def register_user(...):\n  ..."
+  - pattern-either:
+    - pattern: User.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: '### IDOR / Broken Access Control via `admin`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `User.query.filter_by`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: register_user()\n// Parameter: admin\n\n// Attacker
+    executes:\nregister_user(admin = true)\n```
+
+
+    **Outcome:**
+
+    The attacker can register as an admin by providing the ''admin'' parameter in
+    the request body.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can gain administrative privileges, potentially leading to data tampering
+    or unauthorized access.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: IDOR / Broken Access Control
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User.query.filter_by
+    modules_used:
+    - models
+    - flask
+    vulnerable_parameter: admin
+    malicious_payload: 'true'
+    exploit_explanation: The attacker can register as an admin by providing the 'admin'
+      parameter in the request body.
+    exploit_injected_example: register_user(admin = true)
+    impact_summary: Attackers can gain administrative privileges, potentially leading
+      to data tampering or unauthorized access.
