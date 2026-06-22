@@ -1,238 +1,4 @@
 rules:
-- id: fixora-wrapper-debug
-  patterns:
-  - pattern-inside: "def debug(...):\n  ..."
-  - pattern-either:
-    - pattern: jsonify(...)
-    - pattern: $OBJ.jsonify(...)
-    - pattern: User.get_all_users_debug(...)
-    - pattern: $OBJ.get_all_users_debug(...)
-    - pattern: get_all_users_debug(...)
-  message: '### Missing Authentication via `None`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `jsonify, User.get_all_users_debug`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: debug()\n// Parameter: None\n\n// Attacker executes:\ndebug(None
-    = None)\n```
-
-
-    **Outcome:**
-
-    An attacker can directly call this function without any authentication, potentially
-    exposing sensitive user data.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can access all user data without any authorization, leading to potential
-    data breaches and unauthorized access.'
-  severity: ERROR
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: Missing Authentication
-    confidence: HIGH
-    wrapper_defined_in: api_views/users.py
-    wraps:
-    - jsonify
-    - User.get_all_users_debug
-    modules_used:
-    - flask
-    - models
-    vulnerable_parameter: None
-    malicious_payload: None
-    exploit_explanation: An attacker can directly call this function without any authentication,
-      potentially exposing sensitive user data.
-    exploit_injected_example: debug(None = None)
-    impact_summary: Attackers can access all user data without any authorization,
-      leading to potential data breaches and unauthorized access.
-    cwe: &id001
-    - CWE-306
-    owasp: &id002
-    - A01:2021
-- id: fixora-wrapper-get-by-username
-  patterns:
-  - pattern-inside: "def get_by_username(...):\n  ..."
-  - pattern-either:
-    - pattern: User.get_user(...)
-    - pattern: $OBJ.get_user(...)
-    - pattern: get_user(...)
-    - pattern: Response(...)
-    - pattern: $OBJ.Response(...)
-  message: '### Missing Authentication via `username`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `User.get_user, Response`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: get_by_username()\n// Parameter: username\n\n//
-    Attacker executes:\nget_by_username(username = <malicious_data>)\n```
-
-
-    **Outcome:**
-
-    An attacker can access any user''s data without authentication by providing the
-    username.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can access sensitive user data without authorization, potentially leading
-    to data breaches or identity theft.'
-  severity: ERROR
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: Missing Authentication
-    confidence: HIGH
-    wrapper_defined_in: api_views/users.py
-    wraps:
-    - User.get_user
-    - Response
-    modules_used:
-    - flask
-    - models
-    vulnerable_parameter: username
-    malicious_payload: <malicious_data>
-    exploit_explanation: An attacker can access any user's data without authentication
-      by providing the username.
-    exploit_injected_example: get_by_username(username = <malicious_data>)
-    impact_summary: Attackers can access sensitive user data without authorization,
-      potentially leading to data breaches or identity theft.
-    cwe: *id001
-    owasp: *id002
-- id: fixora-wrapper-login-user
-  patterns:
-  - pattern-inside: "def login_user(...):\n  ..."
-  - pattern-either:
-    - pattern: request.get_json(...)
-    - pattern: $OBJ.get_json(...)
-    - pattern: get_json(...)
-    - pattern: User.query.filter_by(...)
-    - pattern: $OBJ.filter_by(...)
-    - pattern: filter_by(...)
-  message: '### Missing Authentication via `request_data`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `request.get_json, User.query.filter_by`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: login_user()\n// Parameter: request_data\n\n//
-    Attacker executes:\nlogin_user(request_data = {})\n```
-
-
-    **Outcome:**
-
-    An attacker can send a request without authentication, potentially accessing or
-    modifying user data.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can access or modify user data without authorization, potentially leading
-    to data breaches or unauthorized actions.'
-  severity: ERROR
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: Missing Authentication
-    confidence: HIGH
-    wrapper_defined_in: api_views/users.py
-    wraps:
-    - request.get_json
-    - User.query.filter_by
-    modules_used:
-    - flask
-    - jsonschema
-    - models
-    vulnerable_parameter: request_data
-    malicious_payload: '{}'
-    exploit_explanation: An attacker can send a request without authentication, potentially
-      accessing or modifying user data.
-    exploit_injected_example: login_user(request_data = {})
-    impact_summary: Attackers can access or modify user data without authorization,
-      potentially leading to data breaches or unauthorized actions.
-    cwe: *id001
-    owasp: *id002
-- id: fixora-wrapper-delete-user
-  patterns:
-  - pattern-inside: "def delete_user(...):\n  ..."
-  - pattern-either:
-    - pattern: User.query.filter_by(...)
-    - pattern: $OBJ.filter_by(...)
-    - pattern: filter_by(...)
-    - pattern: User.delete_user(...)
-    - pattern: $OBJ.delete_user(...)
-    - pattern: delete_user(...)
-  message: '### Missing Authentication via `username`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `User.query.filter_by,
-    User.delete_user`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: delete_user()\n// Parameter: username\n\n// Attacker
-    executes:\ndelete_user(username = <malicious_data>)\n```
-
-
-    **Outcome:**
-
-    The function does not check for authentication before deleting a user, allowing
-    unauthorized access.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can delete any user without authorization, potentially disrupting the
-    application''s functionality and data integrity.'
-  severity: ERROR
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: Missing Authentication
-    confidence: HIGH
-    wrapper_defined_in: api_views/users.py
-    wraps:
-    - User.query.filter_by
-    - User.delete_user
-    modules_used:
-    - flask
-    - models
-    vulnerable_parameter: username
-    malicious_payload: <malicious_data>
-    exploit_explanation: The function does not check for authentication before deleting
-      a user, allowing unauthorized access.
-    exploit_injected_example: delete_user(username = <malicious_data>)
-    impact_summary: Attackers can delete any user without authorization, potentially
-      disrupting the application's functionality and data integrity.
-    cwe: *id001
-    owasp: *id002
 - id: fixora-wrapper-get-user
   patterns:
   - pattern-inside: "def get_user(...):\n  ..."
@@ -249,7 +15,7 @@ rules:
     **Live Exploit Vector:**
 
     ```python\n// Target Function: get_user()\n// Parameter: username\n\n// Attacker
-    executes:\nget_user(username = '' OR 1=1 --)\n```
+    executes:\nget_user(username = 1'' OR ''1''=''1)\n```
 
 
     **Outcome:**
@@ -278,11 +44,11 @@ rules:
     modules_used:
     - sqlalchemy
     vulnerable_parameter: username
-    malicious_payload: ''' OR 1=1 --'
+    malicious_payload: 1' OR '1'='1
     exploit_explanation: The attacker-controlled username is concatenated into the
       SQL WHERE clause, so the payload converts the predicate into an always-true
       condition.
-    exploit_injected_example: get_user(username = ' OR 1=1 --)
+    exploit_injected_example: get_user(username = 1' OR '1'='1)
     impact_summary: Attackers can exfiltrate all rows from the users table and bypass
       authorization checks tied to user scoping.
     cwe:
@@ -299,7 +65,7 @@ rules:
     - pattern: db.session.commit(...)
     - pattern: $OBJ.commit(...)
     - pattern: commit(...)
-  message: '### Plaintext Password via `password`
+  message: '### Mass Assignment via `request_data`
 
 
     **Vulnerable Sink:** Passes untrusted data directly to `db.session.add, db.session.commit`.
@@ -307,20 +73,83 @@ rules:
 
     **Live Exploit Vector:**
 
-    ```python\n// Target Function: register_user()\n// Parameter: password\n\n// Attacker
-    executes:\nregister_user(password = attacker_password)\n```
+    ```python\n// Target Function: register_user()\n// Parameter: request_data\n\n//
+    Attacker executes:\nregister_user(request_data = {"username": "test", "password":
+    "test", "email": "test@example.com", "admin": true})\n```
 
 
     **Outcome:**
 
-    The attacker-controlled password is stored in plaintext, allowing attackers to
-    access user accounts if the database is compromised.
+    The attacker-controlled request data is passed directly to the User model constructor,
+    allowing the attacker to set arbitrary fields, including the admin field.
 
 
     **Data at Risk (Impact):**
 
-    Attackers can access user accounts and sensitive data if the database is compromised,
-    leading to unauthorized access and potential data breaches.'
+    Attackers can create new users with elevated privileges, potentially leading to
+    unauthorized access to sensitive data or functionality.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Mass Assignment
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - db.session.add
+    - db.session.commit
+    modules_used:
+    - flask
+    - config
+    - jsonschema
+    - models
+    vulnerable_parameter: request_data
+    malicious_payload: '{"username": "test", "password": "test", "email": "test@example.com",
+      "admin": true}'
+    exploit_explanation: The attacker-controlled request data is passed directly to
+      the User model constructor, allowing the attacker to set arbitrary fields, including
+      the admin field.
+    exploit_injected_example: 'register_user(request_data = {"username": "test", "password":
+      "test", "email": "test@example.com", "admin": true})'
+    impact_summary: Attackers can create new users with elevated privileges, potentially
+      leading to unauthorized access to sensitive data or functionality.
+    cwe:
+    - CWE-915
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-login-user
+  patterns:
+  - pattern-inside: "def login_user(...):\n  ..."
+  - pattern-either:
+    - pattern: User.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: '### Plaintext Password via `request_data.get(''password'')`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `User.query.filter_by`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: login_user()\n// Parameter: request_data.get(''password'')\n\n//
+    Attacker executes:\nlogin_user(request_data.get(''password'') = test)\n```
+
+
+    **Outcome:**
+
+    The attacker-controlled password is compared to the stored password using the
+    == operator, allowing the attacker to determine if the password is correct.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can determine if a password is correct, potentially leading to unauthorized
+    access to user accounts.'
   severity: ERROR
   languages:
   - python
@@ -331,23 +160,136 @@ rules:
     source: fixora-ai-analysis
     vulnerability_type: Plaintext Password
     confidence: HIGH
-    wrapper_defined_in: models/user_model.py
+    wrapper_defined_in: api_views/users.py
     wraps:
-    - db.session.add
-    - db.session.commit
+    - User.query.filter_by
     modules_used:
-    - config
+    - flask
+    - jsonschema
     - models
-    - random
-    vulnerable_parameter: password
-    malicious_payload: attacker_password
-    exploit_explanation: The attacker-controlled password is stored in plaintext,
-      allowing attackers to access user accounts if the database is compromised.
-    exploit_injected_example: register_user(password = attacker_password)
-    impact_summary: Attackers can access user accounts and sensitive data if the database
-      is compromised, leading to unauthorized access and potential data breaches.
+    vulnerable_parameter: request_data.get('password')
+    malicious_payload: test
+    exploit_explanation: The attacker-controlled password is compared to the stored
+      password using the == operator, allowing the attacker to determine if the password
+      is correct.
+    exploit_injected_example: login_user(request_data.get('password') = test)
+    impact_summary: Attackers can determine if a password is correct, potentially
+      leading to unauthorized access to user accounts.
     cwe:
     - CWE-256
     - CWE-916
     owasp:
     - A02:2021
+- id: fixora-wrapper-update-email
+  patterns:
+  - pattern-inside: "def update_email(...):\n  ..."
+  - pattern-either:
+    - pattern: re.search(...)
+    - pattern: $OBJ.search(...)
+    - pattern: search(...)
+  message: '### Input Validation Failure via `request_data.get(''email'')`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `re.search`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: update_email()\n// Parameter: request_data.get(''email'')\n\n//
+    Attacker executes:\nupdate_email(request_data.get(''email'') = a@b.c)\n```
+
+
+    **Outcome:**
+
+    The attacker-controlled email address is passed to the vulnerable regex, potentially
+    causing a denial-of-service attack.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can cause a denial-of-service attack, potentially leading to service
+    unavailability.'
+  severity: WARNING
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Input Validation Failure
+    confidence: MEDIUM
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - re.search
+    modules_used:
+    - re
+    - config
+    - jsonschema
+    - models
+    - flask
+    vulnerable_parameter: request_data.get('email')
+    malicious_payload: a@b.c
+    exploit_explanation: The attacker-controlled email address is passed to the vulnerable
+      regex, potentially causing a denial-of-service attack.
+    exploit_injected_example: update_email(request_data.get('email') = a@b.c)
+    impact_summary: Attackers can cause a denial-of-service attack, potentially leading
+      to service unavailability.
+    cwe:
+    - CWE-400
+    - CWE-1333
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-get-by-title
+  patterns:
+  - pattern-inside: "def get_by_title(...):\n  ..."
+  - pattern-either:
+    - pattern: Book.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: '### IDOR / Broken Access Control via `book_title`
+
+
+    **Vulnerable Sink:** Passes untrusted data directly to `Book.query.filter_by`.
+
+
+    **Live Exploit Vector:**
+
+    ```python\n// Target Function: get_by_title()\n// Parameter: book_title\n\n//
+    Attacker executes:\nget_by_title(book_title = test)\n```
+
+
+    **Outcome:**
+
+    The attacker-controlled book title is passed to the Book query filter, allowing
+    the attacker to access arbitrary books.
+
+
+    **Data at Risk (Impact):**
+
+    Attackers can access arbitrary books, potentially leading to unauthorized access
+    to sensitive data.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: IDOR / Broken Access Control
+    confidence: HIGH
+    wrapper_defined_in: api_views/books.py
+    wraps:
+    - Book.query.filter_by
+    modules_used:
+    - flask
+    - api_views
+    - models
+    vulnerable_parameter: book_title
+    malicious_payload: test
+    exploit_explanation: The attacker-controlled book title is passed to the Book
+      query filter, allowing the attacker to access arbitrary books.
+    exploit_injected_example: get_by_title(book_title = test)
+    impact_summary: Attackers can access arbitrary books, potentially leading to unauthorized
+      access to sensitive data.
