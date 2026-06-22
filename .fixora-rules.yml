@@ -80,14 +80,14 @@ rules:
 
     **Outcome:**
 
-    The attacker-controlled request data is passed directly to the User model constructor,
+    The attacker-controlled request_data is passed directly to the User model constructor,
     allowing the attacker to set arbitrary fields, including the admin field.
 
 
     **Data at Risk (Impact):**
 
-    Attackers can create new users with elevated privileges, potentially leading to
-    unauthorized access to sensitive data or functionality.'
+    Attackers can create admin users, gaining elevated privileges and access to sensitive
+    data.'
   severity: ERROR
   languages:
   - python
@@ -104,19 +104,17 @@ rules:
     - db.session.commit
     modules_used:
     - flask
-    - config
-    - jsonschema
     - models
     vulnerable_parameter: request_data
     malicious_payload: '{"username": "test", "password": "test", "email": "test@example.com",
       "admin": true}'
-    exploit_explanation: The attacker-controlled request data is passed directly to
+    exploit_explanation: The attacker-controlled request_data is passed directly to
       the User model constructor, allowing the attacker to set arbitrary fields, including
       the admin field.
     exploit_injected_example: 'register_user(request_data = {"username": "test", "password":
       "test", "email": "test@example.com", "admin": true})'
-    impact_summary: Attackers can create new users with elevated privileges, potentially
-      leading to unauthorized access to sensitive data or functionality.
+    impact_summary: Attackers can create admin users, gaining elevated privileges
+      and access to sensitive data.
     cwe:
     - CWE-915
     owasp:
@@ -142,13 +140,13 @@ rules:
 
     **Outcome:**
 
-    The attacker-controlled password is compared to the stored password using the
-    == operator, allowing the attacker to determine if the password is correct.
+    The attacker-controlled password is compared directly to the stored password using
+    the == operator, allowing the attacker to determine if the password is correct.
 
 
     **Data at Risk (Impact):**
 
-    Attackers can determine if a password is correct, potentially leading to unauthorized
+    Attackers can determine if a password is correct, allowing them to gain unauthorized
     access to user accounts.'
   severity: ERROR
   languages:
@@ -165,131 +163,17 @@ rules:
     - User.query.filter_by
     modules_used:
     - flask
-    - jsonschema
     - models
     vulnerable_parameter: request_data.get('password')
     malicious_payload: test
-    exploit_explanation: The attacker-controlled password is compared to the stored
-      password using the == operator, allowing the attacker to determine if the password
-      is correct.
+    exploit_explanation: The attacker-controlled password is compared directly to
+      the stored password using the == operator, allowing the attacker to determine
+      if the password is correct.
     exploit_injected_example: login_user(request_data.get('password') = test)
-    impact_summary: Attackers can determine if a password is correct, potentially
-      leading to unauthorized access to user accounts.
+    impact_summary: Attackers can determine if a password is correct, allowing them
+      to gain unauthorized access to user accounts.
     cwe:
     - CWE-256
     - CWE-916
     owasp:
     - A02:2021
-- id: fixora-wrapper-update-email
-  patterns:
-  - pattern-inside: "def update_email(...):\n  ..."
-  - pattern-either:
-    - pattern: re.search(...)
-    - pattern: $OBJ.search(...)
-    - pattern: search(...)
-  message: '### Input Validation Failure via `request_data.get(''email'')`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `re.search`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: update_email()\n// Parameter: request_data.get(''email'')\n\n//
-    Attacker executes:\nupdate_email(request_data.get(''email'') = a@b.c)\n```
-
-
-    **Outcome:**
-
-    The attacker-controlled email address is passed to the vulnerable regex, potentially
-    causing a denial-of-service attack.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can cause a denial-of-service attack, potentially leading to service
-    unavailability.'
-  severity: WARNING
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: Input Validation Failure
-    confidence: MEDIUM
-    wrapper_defined_in: api_views/users.py
-    wraps:
-    - re.search
-    modules_used:
-    - re
-    - config
-    - jsonschema
-    - models
-    - flask
-    vulnerable_parameter: request_data.get('email')
-    malicious_payload: a@b.c
-    exploit_explanation: The attacker-controlled email address is passed to the vulnerable
-      regex, potentially causing a denial-of-service attack.
-    exploit_injected_example: update_email(request_data.get('email') = a@b.c)
-    impact_summary: Attackers can cause a denial-of-service attack, potentially leading
-      to service unavailability.
-    cwe:
-    - CWE-400
-    - CWE-1333
-    owasp:
-    - A03:2021
-- id: fixora-wrapper-get-by-title
-  patterns:
-  - pattern-inside: "def get_by_title(...):\n  ..."
-  - pattern-either:
-    - pattern: Book.query.filter_by(...)
-    - pattern: $OBJ.filter_by(...)
-    - pattern: filter_by(...)
-  message: '### IDOR / Broken Access Control via `book_title`
-
-
-    **Vulnerable Sink:** Passes untrusted data directly to `Book.query.filter_by`.
-
-
-    **Live Exploit Vector:**
-
-    ```python\n// Target Function: get_by_title()\n// Parameter: book_title\n\n//
-    Attacker executes:\nget_by_title(book_title = test)\n```
-
-
-    **Outcome:**
-
-    The attacker-controlled book title is passed to the Book query filter, allowing
-    the attacker to access arbitrary books.
-
-
-    **Data at Risk (Impact):**
-
-    Attackers can access arbitrary books, potentially leading to unauthorized access
-    to sensitive data.'
-  severity: ERROR
-  languages:
-  - python
-  metadata:
-    category: security
-    technology:
-    - python
-    source: fixora-ai-analysis
-    vulnerability_type: IDOR / Broken Access Control
-    confidence: HIGH
-    wrapper_defined_in: api_views/books.py
-    wraps:
-    - Book.query.filter_by
-    modules_used:
-    - flask
-    - api_views
-    - models
-    vulnerable_parameter: book_title
-    malicious_payload: test
-    exploit_explanation: The attacker-controlled book title is passed to the Book
-      query filter, allowing the attacker to access arbitrary books.
-    exploit_injected_example: get_by_title(book_title = test)
-    impact_summary: Attackers can access arbitrary books, potentially leading to unauthorized
-      access to sensitive data.
