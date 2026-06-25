@@ -1,0 +1,189 @@
+rules:
+- id: fixora-wrapper-get-user
+  patterns:
+  - pattern-inside: "def get_user(...):\n  ..."
+  - pattern-either:
+    - pattern: db.session.execute(...)
+    - pattern: $OBJ.execute(...)
+    - pattern: execute(...)
+  message: 'SQL Injection via `username`
+
+    Vulnerable Sink: Passes untrusted data directly to `db.session.execute`.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: SQL Injection
+    confidence: HIGH
+    wrapper_defined_in: models/user_model.py
+    wraps:
+    - db.session.execute
+    modules_used:
+    - sqlalchemy
+    vulnerable_parameter: username
+    malicious_payload: 1 OR 1=1 --
+    exploit_explanation: The attacker-controlled username is concatenated into the
+      SQL WHERE clause, so the payload converts the predicate into an always-true
+      condition.
+    exploit_injected_example: get_user(username = 1 OR 1=1 --)
+    impact_summary: Attackers can exfiltrate all rows from the users table and bypass
+      authorization checks tied to user scoping.
+    cwe:
+    - CWE-89
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-register-user
+  patterns:
+  - pattern-inside: "def register_user(...):\n  ..."
+  - pattern-either:
+    - pattern: db.session.add(...)
+    - pattern: $OBJ.add(...)
+    - pattern: add(...)
+    - pattern: db.session.commit(...)
+    - pattern: $OBJ.commit(...)
+    - pattern: commit(...)
+  message: 'Mass Assignment via `request_data`
+
+    Vulnerable Sink: Passes untrusted data directly to `db.session.add, db.session.commit`.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Mass Assignment
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - db.session.add
+    - db.session.commit
+    modules_used:
+    - flask
+    - models
+    vulnerable_parameter: request_data
+    malicious_payload: '{"username": "test", "password": "test", "email": "test@example.com",
+      "admin": true}'
+    exploit_explanation: The attacker can manipulate the request data to assign arbitrary
+      values to the User model's attributes, potentially escalating privileges.
+    exploit_injected_example: 'register_user(request_data = {"username": "test", "password":
+      "test", "email": "test@example.com", "admin": true})'
+    impact_summary: Attackers can create users with elevated privileges, compromising
+      the security of the application.
+    cwe:
+    - CWE-915
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-login-user
+  patterns:
+  - pattern-inside: "def login_user(...):\n  ..."
+  - pattern-either:
+    - pattern: User.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: 'Plaintext Password via `request_data.get(''password'')`
+
+    Vulnerable Sink: Passes untrusted data directly to `User.query.filter_by`.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Plaintext Password
+    confidence: HIGH
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - User.query.filter_by
+    modules_used:
+    - flask
+    - models
+    vulnerable_parameter: request_data.get('password')
+    malicious_payload: ''
+    exploit_explanation: The application stores passwords in plaintext and compares
+      them using the == operator, allowing attackers to obtain the passwords.
+    exploit_injected_example: ''
+    impact_summary: Attackers can obtain user passwords, compromising the security
+      of the application and its users.
+    cwe:
+    - CWE-256
+    - CWE-916
+    owasp:
+    - A02:2021
+- id: fixora-wrapper-update-email
+  patterns:
+  - pattern-inside: "def update_email(...):\n  ..."
+  - pattern-either:
+    - pattern: re.search(...)
+    - pattern: $OBJ.search(...)
+    - pattern: search(...)
+  message: 'Input Validation Failure via `request_data.get(''email'')`
+
+    Vulnerable Sink: Passes untrusted data directly to `re.search`.'
+  severity: WARNING
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: Input Validation Failure
+    confidence: MEDIUM
+    wrapper_defined_in: api_views/users.py
+    wraps:
+    - re.search
+    modules_used:
+    - re
+    vulnerable_parameter: request_data.get('email')
+    malicious_payload: a@b.c
+    exploit_explanation: The attacker can craft a malicious email address that causes
+      the regex to take an excessive amount of time to process, leading to a denial-of-service
+      attack.
+    exploit_injected_example: update_email(request_data.get('email') = a@b.c)
+    impact_summary: Attackers can cause the application to become unresponsive or
+      crash, compromising its availability.
+    cwe:
+    - CWE-400
+    - CWE-1333
+    owasp:
+    - A03:2021
+- id: fixora-wrapper-get-by-title
+  patterns:
+  - pattern-inside: "def get_by_title(...):\n  ..."
+  - pattern-either:
+    - pattern: Book.query.filter_by(...)
+    - pattern: $OBJ.filter_by(...)
+    - pattern: filter_by(...)
+  message: 'IDOR / Broken Access Control via `book_title`
+
+    Vulnerable Sink: Passes untrusted data directly to `Book.query.filter_by`.'
+  severity: ERROR
+  languages:
+  - python
+  metadata:
+    category: security
+    technology:
+    - python
+    source: fixora-ai-analysis
+    vulnerability_type: IDOR / Broken Access Control
+    confidence: HIGH
+    wrapper_defined_in: api_views/books.py
+    wraps:
+    - Book.query.filter_by
+    modules_used:
+    - models
+    vulnerable_parameter: book_title
+    malicious_payload: ''
+    exploit_explanation: The attacker can access books that do not belong to them
+      by manipulating the book title parameter.
+    exploit_injected_example: ''
+    impact_summary: Attackers can access sensitive information that does not belong
+      to them, compromising the security and confidentiality of the application.
